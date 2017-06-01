@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine import reflection
 
 engine = create_engine('mysql+pymysql://dota2:dota2db@localhost/dota2')
+#engine = create_engine("postgresql://postgres:dota2db@localhost/dota")
 metadata = MetaData()
 
 insp = reflection.Inspector.from_engine(engine)
@@ -20,7 +21,7 @@ accID = 3342844
 
 def all_players_to_db(accID, api, engine):
     matches = []
-    for hero_id in range(1,114):
+    for hero_id in range(1,115):
         cond = True
         k = 0
         while cond:
@@ -83,5 +84,5 @@ def all_players_to_db(accID, api, engine):
     print('Extraction finished. ',count,' matches were extracted.')
     
     
-#accID = 3342844
-#all_players_to_db(accID, api, engine)
+accID = 3342844
+all_players_to_db(accID, api, engine)

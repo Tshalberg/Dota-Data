@@ -229,7 +229,8 @@ plt.ylabel(y)
 
 def player_to_db_full(accID, api, engine):
     matches = []
-    for hero_id in range(1, 114):
+    for hero_id in range(1, 115):
+        print('hero ID ',hero_id)
         cond = True
         k = 0
         while cond:
@@ -288,9 +289,10 @@ def player_to_db_full(accID, api, engine):
     dfMatch.to_sql(str(accID)+'_mStats_full', engine, if_exists='replace')
     print('Extraction finished. ',count,' matches were extracted.')
 
-accID = 117417755
-#accID = 3342844
-#player_to_db_full(accID, api, engine)
+#accID = 117417755
+accID = 3342844
+engine = create_engine("postgresql://postgres:dota2db@localhost/dota")
+player_to_db_full(accID, api, engine)
 
 #%%
 
