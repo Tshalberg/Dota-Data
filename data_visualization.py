@@ -11,7 +11,7 @@ from sklearn import preprocessing
 output_file("callback.html")
 
 try:
-    engine = create_engine("postgresql://postgres:dota2db2@localhost/dota")
+    engine = create_engine("postgresql://postgres:dota2db@localhost/dota")
     pstats = pd.read_sql_table('3342844_pStats_full', engine, schema='dota_data')
     mstats = pd.read_sql_table('3342844_mStats_full', engine, schema='dota_data')
 except:
