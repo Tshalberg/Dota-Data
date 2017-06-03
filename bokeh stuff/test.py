@@ -1,76 +1,40 @@
-''' Present an interactive function explorer with slider widgets.
-
-Scrub the sliders to change the properties of the ``sin`` curve, or
-type into the title text box to update the title of the plot.
-
-Use the ``bokeh serve`` command to run the example by executing:
-
-    bokeh serve sliders.py
-
-at your command prompt. Then navigate to the URL
-
-    http://localhost:5006/sliders
-
-in your browser.
-
-'''
+from bokeh.layouts import column
+from bokeh.models import CustomJS, ColumnDataSource, Slider
+from bokeh.plotting import Figure, output_file, show
+from bokeh.models.widgets import Select
 import numpy as np
+output_file("callback.html")
 
-from bokeh.io import curdoc
-from bokeh.layouts import row, widgetbox
-from bokeh.models import ColumnDataSource
-from bokeh.models.widgets import Slider, TextInput
-from bokeh.plotting import figure
+foo = [x*0.005 for x in range(0, 200)]
+bar = [i*0.1 for i in range(0, 200)]
+baz = [np.sin(b) for b in bar]
+quux = [np.cos(b) for b in bar]
 
-# Set up data
-N = 200
-x = np.linspace(0, 4*np.pi, N)
-y = np.sin(x)
-source = ColumnDataSource(data=dict(x=x, y=y))
+source = ColumnDataSource(data=dict(x=foo, y=foo, foo=foo, bar=bar, baz=baz, quux=quux))
 
+plot = Figure(plot_width=400, plot_height=400)
+plot.scatter('x', 'y', source=source, line_width=3, line_alpha=0.6)
 
-# Set up plot
-plot = figure(plot_height=400, plot_width=400, title="my sine wave",
-              tools="crosshair,pan,reset,save,wheel_zoom",
-              x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
+def callbacky(source=source, window=None):
+    data = source.data
+    f = cb_obj.value
+    x, y = data['x'], data['y']
+    data['y'] = data[f]
 
-plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
+    source.trigger('change')
 
-
-# Set up widgets
-text = TextInput(title="title", value='my sine wave')
-offset = Slider(title="offset", value=0.0, start=-5.0, end=5.0, step=0.1)
-amplitude = Slider(title="amplitude", value=1.0, start=-5.0, end=5.0)
-phase = Slider(title="phase", value=0.0, start=0.0, end=2*np.pi)
-freq = Slider(title="frequency", value=1.0, start=0.1, end=5.1)
+def callbackx(source=source, window=None):
+    data = source.data
+    f = cb_obj.value
+    x, y = data['x'], data['y']
+    data['x'] = data[f]
+    source.trigger('change')
 
 
-# Set up callbacks
-def update_title(attrname, old, new):
-    plot.title.text = text.value
 
-text.on_change('value', update_title)
+selecty = Select(title="Y-axis:", value="foo", options=["foo", "bar", "baz", "quux"], callback=CustomJS.from_py_func(callbacky))
+selectx = Select(title="X-axis:", value="foo", options=["foo", "bar", "baz", "quux"], callback=CustomJS.from_py_func(callbackx))
 
-def update_data(attrname, old, new):
+layout = column(selecty, selectx, plot)
 
-    # Get the current slider values
-    a = amplitude.value
-    b = offset.value
-    w = phase.value
-    k = freq.value
-
-    # Generate the new curve
-    x = np.linspace(0, 4*np.pi, N)
-    y = a*np.sin(k*x + w) + b
-
-    source.data = dict(x=x, y=y)
-
-for w in [offset, amplitude, phase, freq]:
-    w.on_change('value', update_data)
-
-
-# Set up layouts and add to document
-inputs = widgetbox(text, offset, amplitude, phase, freq)
-
-curdoc().add_root(row(inputs, plot, width=800))
-curdoc().title = "Sliders"
+show(layout)
