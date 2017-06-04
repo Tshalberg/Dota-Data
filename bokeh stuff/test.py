@@ -1,40 +1,23 @@
-from bokeh.layouts import column
-from bokeh.models import CustomJS, ColumnDataSource, Slider
-from bokeh.plotting import Figure, output_file, show
-from bokeh.models.widgets import Select
-import numpy as np
-output_file("callback.html")
+from datetime import date
+from random import randint
 
-foo = [x*0.005 for x in range(0, 200)]
-bar = [i*0.1 for i in range(0, 200)]
-baz = [np.sin(b) for b in bar]
-quux = [np.cos(b) for b in bar]
+from bokeh.io import output_file, show
+from bokeh.layouts import widgetbox
+from bokeh.models import ColumnDataSource
+from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
 
-source = ColumnDataSource(data=dict(x=foo, y=foo, foo=foo, bar=bar, baz=baz, quux=quux))
+output_file("data_table.html")
 
-plot = Figure(plot_width=400, plot_height=400)
-plot.scatter('x', 'y', source=source, line_width=3, line_alpha=0.6)
+data = dict(
+        dates=[date(2014, 3, i+1) for i in range(10)],
+        downloads=[randint(0, 100) for i in range(10)],
+    )
+source = ColumnDataSource(data)
 
-def callbacky(source=source, window=None):
-    data = source.data
-    f = cb_obj.value
-    x, y = data['x'], data['y']
-    data['y'] = data[f]
+columns = [
+        TableColumn(field="dates", title="Date", formatter=DateFormatter()),
+        TableColumn(field="downloads", title="Downloads"),
+    ]
+data_table = DataTable(source=source, columns=columns, width=400, height=280)
 
-    source.trigger('change')
-
-def callbackx(source=source, window=None):
-    data = source.data
-    f = cb_obj.value
-    x, y = data['x'], data['y']
-    data['x'] = data[f]
-    source.trigger('change')
-
-
-
-selecty = Select(title="Y-axis:", value="foo", options=["foo", "bar", "baz", "quux"], callback=CustomJS.from_py_func(callbacky))
-selectx = Select(title="X-axis:", value="foo", options=["foo", "bar", "baz", "quux"], callback=CustomJS.from_py_func(callbackx))
-
-layout = column(selecty, selectx, plot)
-
-show(layout)
+show(widgetbox(data_table))

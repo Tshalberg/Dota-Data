@@ -4,9 +4,10 @@ from sqlalchemy import create_engine
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import column
 from bokeh.models import CustomJS, ColumnDataSource, Slider
-from bokeh.plotting import Figure, output_file, show, curdoc
-from bokeh.models.widgets import Select,Button
-import numpy as np
+from bokeh.plotting import Figure, curdoc
+from bokeh.models.widgets import Select, Button
+from bokeh.layouts import widgetbox
+from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
 from sklearn import preprocessing
 output_file("callback.html")
 
@@ -113,6 +114,7 @@ def callbackx(source1=source1, window=None):
 selecty = Select(title="Y-axis:", value=cols[0], options=cols, callback=CustomJS.from_py_func(callbacky))
 selectx = Select(title="X-axis:", value=cols[0], options=cols, callback=CustomJS.from_py_func(callbackx))
 
+
 def callback_hero(source=source, source1=source1, selecty=selecty, selectx=selectx, window=None):
     data = source.data
     data1 = source1.data
@@ -135,22 +137,70 @@ def callback_hero(source=source, source1=source1, selecty=selecty, selectx=selec
     data1['y'] = ynew
     data1['colors'] = colorsnew
     source1.trigger('change')
-
-
  
 select_hero = Select(title="Hero:", value=unique_heroes[0], options=unique_heroes, callback=CustomJS.from_py_func(callback_hero))
 
 def print_stuff(attr, old, new, select_hero=select_hero, selecty=selecty, selectx=selectx):
     print(select_hero.value, selecty.value, selectx.value)
 
-selectx.on_change('value', print_stuff)
-selecty.on_change('value', print_stuff)
-select_hero.on_change('value', print_stuff)
+
 
 plot = Figure(plot_width=400, plot_height=400)
 plot.circle('x', 'y', source=source1, line_alpha=0.6, color='colors')
 
-layout = column(selecty, selectx, select_hero, plot)
+data_table = dict()
+filter_list = ['kills', 'xp_per_min', 'assists', 'duration', 'kda', 'deaths', 'gold_per_min']
+data_table['hero'] = [select_hero.value]
+for key in source1.data.keys():
+    if key in filter_list:
+        data_table[key] = [round(np.mean(data[key]),2)]
+        
+source_table = ColumnDataSource(data=data_table)
+
+columns = [  
+        TableColumn(field="hero", title="hero"),
+        TableColumn(field="xp_per_min", title="xpm"),
+        TableColumn(field="gold_per_min", title="gpm"),
+        TableColumn(field="kills", title="kills"),
+        TableColumn(field="deaths", title="deaths"),
+        TableColumn(field="assists", title="assists"),
+        TableColumn(field="kda", title="kda"),
+        TableColumn(field="duration", title="duration"), 
+    ]
+table = DataTable(source=source_table, columns=columns, width=600, height=280)
+
+
+#def update_table(dict(source=source, source_table=source_table, select_hero=select_hero, filter_list=filter_list, window=None)):
+#dawdaw = dict(source=source, source_table=source_table, select_hero=select_hero, filter_list=filter_list)
+#def update_table(source=source, source_table=source_table, select_hero=select_hero, filter_list=filter_list, window=None):
+#    print(new)
+#    new = select_hero.value
+#    data = source    
+#    data2 = source_table
+#    df = pd.DataFrame(data)
+#    df = df[df['heroes'] == new]
+#    df = df[filter_list]
+#    data2['hero'] = [new]
+#    for key in df:
+#        data2[key] = [df[key].mean()] 
+#    source_table.trigger('change')
+#    print('LEL')
+#
+#button = Button(label="Update Table", button_type="success", callback=CustomJS.from_py_func(update_table))
+
+#['kills', 'xp_per_min', 'assists', 'duration', 'kda', 'deaths', 'gold_per_min']
+
+selectx.on_change('value', print_stuff)
+selecty.on_change('value', print_stuff)
+select_hero.on_change('value', print_stuff)
+#select_hero.on_change('value', CustomJS.from_py_func(update_table))
+
+
+
+
+
+
+layout = column(selecty, selectx, select_hero, plot,table)
 
 #show(layout)
 curdoc().add_root(layout)
