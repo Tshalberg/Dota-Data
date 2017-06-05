@@ -9,10 +9,7 @@ from bokeh.models.widgets import Select, Button
 from bokeh.layouts import widgetbox
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
 from sklearn import preprocessing
-from bokeh.models import HoverTool, BoxSelectTool
-
 output_file("callback.html")
-
 
 try:
     engine = create_engine("postgresql://postgres:dota2db@localhost/dota")
@@ -58,10 +55,10 @@ for ind in tommy.index:
         kda.append((tommy.kills[ind]+tommy.assists[ind])/tommy.deaths[ind])
 
 
+
 tommy['victory'] = victory
 tommy['faction'] = faction
 tommy['kda'] = kda
-tommy['match_id'] = tommy.index
 
 wins = tommy.victory.value_counts()[1]
 losses = tommy.victory.value_counts()[0]
@@ -88,133 +85,134 @@ for i in range(len(tommy)):
 #    colors.append("#%02x%02x%02x" % (int(tommy.age.iloc[i]*255), int(tommy.age.iloc[i]*100), int(tommy.age.iloc[i]*150)))
     else:
         colors.append('red')
-tommy['colors'] = colors
+
 unique_heroes = ['All Heroes']+sorted(list(tommy.hero_name.unique()))
-tommy.rename(columns={'hero_name':'heroes'}, inplace=True)
-tommy['x'] = tommy[cols[0]]
-tommy['y'] = tommy[cols[0]]
-
-source = ColumnDataSource(data=tommy)
-
-source1 = ColumnDataSource(data=tommy)
+heroes = list(tommy.hero_name)
+data = dict(x=list(tommy[cols[0]]), y=list(tommy[cols[0]]), colors=colors, heroes=heroes)
+for col in cols:
+    data[col] = list(tommy[col])
 
 
-def updatey(attr, old, new, source1=source1):
+source = ColumnDataSource(data=data)
+
+source1 = ColumnDataSource(data=data)
+
+def callbacky(source1=source1, window=None):
     data = source1.data
-    data['y'] = data[new]
-    source1.data = data
+    f = cb_obj.value
+    x, y = data['x'], data['y']
+    data['y'] = data[f]
+    source1.trigger('change')
 
-def updatex(attr, old, new, source1=source1):
+def callbackx(source1=source1, window=None):
     data = source1.data
-    data['x'] = data[new]
-    source1.data = data
+    f = cb_obj.value
+    x, y = data['x'], data['y']
+    data['x'] = data[f]
+    source1.trigger('change')
 
-selecty = Select(title="Y-axis:", value=cols[0], options=cols)
-selectx = Select(title="X-axis:", value=cols[0], options=cols)
-selecty.on_change('value', updatey)
-selectx.on_change('value', updatex)
+selecty = Select(title="Y-axis:", value=cols[0], options=cols, callback=CustomJS.from_py_func(callbacky))
+selectx = Select(title="X-axis:", value=cols[0], options=cols, callback=CustomJS.from_py_func(callbackx))
 
-table_cols = ['hero', 'gold_per_min', 'xpm_per_min', 'kills', "deaths", "assists", "duration", "winrate", "matches"]
 data_table = dict()
-for key in table_cols:
+for key in cols:
     data_table[key] = []
+#filter_list = ['kills', 'xp_per_min', 'assists', 'duration', 'kda', 'deaths', 'gold_per_min']
+#data_table['hero'] = ['Tiny']
+#for key in source1.data.keys():
+#    if key in filter_list:
+#        data_table[key] = [round(np.mean(data[key]),2)]
 
 source_table = ColumnDataSource(data=data_table)
 
-select_hero = Select(title="Hero:", value=unique_heroes[0], options=unique_heroes)
-
-factions = ['both', 'radiant', 'dire']
-select_faction = Select(title="Faction:", value=factions[0], options=factions)
-  
-def updatehero(attr, old, new, source=source, source1=source1, select_hero=select_hero, selecty=selecty, selectx=selectx, select_faction=select_faction):
-    df = pd.DataFrame(source.data)
-    hero = select_hero.value
-    faction = select_faction.value
-    if hero != 'All Heroes':
-        df = df[df['heroes'] == hero]
-    if faction != 'both':
-        df = df[df['faction'] == faction]
-    df['x'] = df[selectx.value]
-    df['y'] = df[selecty.value]
-    source1.data = ColumnDataSource(df).data
+def callback_hero(source=source, source1=source1, source_table=source_table, selecty=selecty, selectx=selectx, window=None):
+    data = source.data
+    data1 = source1.data
+    f = cb_obj.value
+    x, y, c = data[selectx.value], data[selecty.value], data['colors']
+    xnew = []
+    ynew = []
+    colorsnew = []
+    for i in range(len(x)):
+        if f == 'All Heroes':
+            xnew = x
+            ynew = y
+            colorsnew = c
+            break
+        elif data['heroes'][i] == f:
+            xnew.append(x[i])
+            ynew.append(y[i])
+            colorsnew.append(c[i])
+    data1['x'] = xnew
+    data1['y'] = ynew
+    data1['colors'] = colorsnew
+    source1.trigger('change')
+    source_table.trigger('change')
+ 
+select_hero = Select(title="Hero:", value=unique_heroes[0], options=unique_heroes, callback=CustomJS.from_py_func(callback_hero))
 
 def print_stuff(attr, old, new, select_hero=select_hero, selecty=selecty, selectx=selectx):
     print(select_hero.value, selecty.value, selectx.value)
 
 
-hover = HoverTool()
-hover.tooltips = [
-    ("(x,y)", "($x, $y)"),
-    ("hero", "@heroes"),
-    ("kills", "@kills"),
-    ("deaths", "@deaths"),
-    ("assists", "@assists"),
-]
 
-TOOLS = [BoxSelectTool(), hover]
-
-plot = Figure(plot_width=400, plot_height=400, tools=TOOLS)
+plot = Figure(plot_width=400, plot_height=400)
 plot.circle('x', 'y', source=source1, line_alpha=0.6, color='colors')
 
 
 
 columns = [  
         TableColumn(field="hero", title="hero"),
-        TableColumn(field="gold_per_min", title="gpm"),
         TableColumn(field="xp_per_min", title="xpm"),
+        TableColumn(field="gold_per_min", title="gpm"),
         TableColumn(field="kills", title="kills"),
         TableColumn(field="deaths", title="deaths"),
         TableColumn(field="assists", title="assists"),
         TableColumn(field="kda", title="kda"),
-        TableColumn(field="duration", title="duration"),
-        TableColumn(field="winrate", title="winrate"),
-        TableColumn(field="matches", title="matches"),
+        TableColumn(field="duration", title="duration"), 
     ]
+table = DataTable(source=source_table, columns=columns, width=600, height=280)
 
-table = DataTable(source=source_table, columns=columns, width=1000, height=280)
+#%%
+def myround(num):
+    num = str(num).split('.')
+    newnum = float(num[0]+'.'+num[1][0:2])
+    return newnum
 
-def table_data(df, hero, faction):
-    if hero != 'All Heroes':
-        df = df[df['heroes'] == hero]
-    if faction != 'both':
-        df = df[df['faction'] == faction]
-#    df = df[cols]
-    means = df.mean()
-    data = dict()
-    data['hero'] = [hero]
-    data['matches'] = [len(df)]
-    data['winrate'] = [round(df.victory.value_counts()[1]/len(df), 3)]
-    for i in range(len(means)):
-        if means.index[i] in cols:
-            data[means.index[i]] = [round(means[i], 2)]
-    return data
+#%%
 
-def update_table(attr, old, new, source=source, source_table=source_table, select_hero=select_hero, select_faction=select_faction):
-    faction = select_faction.value
-    hero = select_hero.value
+def update_table(attr, old, new, source=source, source_table=source_table, select_hero=select_hero):
+    new = select_hero.value
     data = source.data
+    data2 = source_table.data
     df = pd.DataFrame(data)
-    data2 = table_data(df, hero, faction)
+    if new != 'All Heroes':
+        df = df[df['heroes'] == new]
+    df = df[cols]
+    data2['hero'] = [new]
+    for key in df:
+        data2[key] = [myround(df[key].mean())]
     data2 = ColumnDataSource(data2)
     source_table.data = data2.data
 
 
-update_table('value', 'w/e', 'All Heroes', source=source, source_table=source_table, select_hero=select_hero, select_faction=select_faction)
-updatehero('value', 'w/e', 'All Heroes', source=source, source1=source1, select_hero=select_hero, select_faction=select_faction)
+update_table('value', 'w/e', 'All Heroes', source=source, source_table=source_table, select_hero=select_hero)
 
+button = Button(label="Update Table", button_type="success", callback=CustomJS.from_py_func(update_table))
+
+#['kills', 'xp_per_min', 'assists', 'duration', 'kda', 'deaths', 'gold_per_min']
 
 selectx.on_change('value', print_stuff)
 selecty.on_change('value', print_stuff)
 select_hero.on_change('value', print_stuff)
 select_hero.on_change('value', update_table)
-select_hero.on_change('value', updatehero)
-select_faction.on_change('value', update_table)
-select_faction.on_change('value', updatehero)
 
-selections = column(selecty, selectx, select_hero, select_faction)
+selections = column(selecty, selectx, select_hero, table)
 
 col1 = row(selections, plot)
 
-layout = column(col1, table)
+layout = col1
 
+
+#show(layout)
 curdoc().add_root(layout)
