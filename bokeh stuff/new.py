@@ -1,45 +1,28 @@
-from bokeh.models.widgets import Select, Button, DataTable, DateFormatter, TableColumn
-from bokeh.layouts import widgetbox, column
-from bokeh.io import curdoc
-from bokeh.plotting import Figure
-from bokeh.models import ColumnDataSource
+from bokeh.plotting import figure, show, output_file
+from bokeh.models import ColumnDataSource, Range1d, LabelSet, Label
 
-import pandas as pd
-import numpy as np
+output_file("label.html", title="label.py example")
 
+source = ColumnDataSource(data=dict(height=[66, 71, 72, 68, 58, 62],
+                                    weight=[165, 189, 220, 141, 260, 174],
+                                    names=['Mark', 'Amir', 'Matt', 'Greg',
+                                           'Owen', 'Juan']))
 
-x = list(range(10))
-y = [x**2 for x in x]
-z = [x**3 for x in x]
-k = [x**0.5 for x in x]
+p = figure(title='Dist. of 10th Grade Students at Lee High',
+           x_range=Range1d(140, 275))
+p.scatter(x='weight', y='height', size=8, source=source)
+p.xaxis[0].axis_label = 'Weight (lbs)'
+p.yaxis[0].axis_label = 'Height (in)'
 
-df = pd.DataFrame(dict(X=x, Y=y, x=x, y=y, z=z, k=k))
+labels = LabelSet(x='weight', y='height', text='names', level='glyph',
+              x_offset=5, y_offset=5, source=source, render_mode='canvas')
 
-s1 = ColumnDataSource(df)
+citation = Label(x=70, y=70, x_units='screen', y_units='screen',
+                 text='Collected by Luke C. 2016-04-01', render_mode='css',
+                 border_line_color='black', border_line_alpha=1.0,
+                 background_fill_color='white', background_fill_alpha=1.0)
 
-options =  ['x', 'y', 'z', 'k']
+p.add_layout(labels)
+p.add_layout(citation)
 
-def get_new_data(new):
-    data = s1.data
-    df = pd.DataFrame(data)
-    df['Y'] = df[new]
-    return ColumnDataSource(data=df)
-    
-
-def update(attr, old, new):
-    stuff = get_new_data(new)
-    s1.data.update(stuff.data)
-    
-
-select = Select(title='select y-axis', options=options, value='x')
-select.on_change('value', update)
-
-
-plot = Figure(plot_height=400, plot_width=400)
-plot.line('X', 'Y', source=s1, line_width=3, line_alpha=0.6)
-
-#update('value', 'Y', 'z')
-
-layout = column(select, plot)
-
-curdoc().add_root(layout)
+show(p)
