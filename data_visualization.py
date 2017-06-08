@@ -15,10 +15,15 @@ from bokeh.charts import Donut, Bar, Scatter, color
 output_file("callback.html")
 
 
+accID = 3342844
+#accID = 326779
+#accID = 55266300
+
+
 try:
     engine = create_engine("postgresql://postgres:dota2db@localhost/dota")
-    pstats = pd.read_sql_table('3342844_pStats_full', engine, schema='dota_data')
-    mstats = pd.read_sql_table('3342844_mStats_full', engine, schema='dota_data')
+    pstats = pd.read_sql_table(str(accID)+'_pStats_full', engine, schema='dota_data')
+    mstats = pd.read_sql_table(str(accID)+'_mStats_full', engine, schema='dota_data')
 except:
     pass
     pstats = pd.read_excel('pstats.xlsx')
@@ -102,7 +107,11 @@ for t in t_int:
     hours.append(t)
     df = tommy.copy()
     df = df[df['h_time']==t]
-    wr = df['victory'].value_counts()[1]/len(df)
+#    wr = df['victory'].value_counts()[1]/len(df)
+    try:
+        wr = df['victory'].value_counts()[1]/len(df)
+    except:
+        wr = 0
     t_mat.append(len(df))
     t_wr.append(wr)
     val = (wr-0.5)
@@ -352,3 +361,26 @@ bars = row(bar, bar2)
 layout = column(col1, table_slider, bars)
 #show(bar)
 curdoc().add_root(layout)
+
+#%%
+#
+#import matplotlib.pyplot as plt
+#
+##plt.hist(list(tommy['xp_per_min']), bins=100)
+##plt.hist(list(pstats['level']), bins=25)
+#xp_gained = [tommy['xp_per_min'].iloc[i]*tommy['duration'].iloc[i] for i in range(len(tommy))]
+##xp_gained_sorted = sorted(xp_gained)
+##plt.hist(xp_gained, bins=100)
+#p = plt.scatter(list(tommy['duration']), tommy['xp_per_min'])
+#x = np.arange(min(tommy['duration']), max(tommy['duration']), 0.01)
+#maxxp = 32.4e3
+#y = maxxp/x
+#
+#maxxp2 = 26.9e3
+#y2 = maxxp2/x
+#
+#plt.plot(x, y)
+#
+#plt.plot(x, y2)
+#%%
+

@@ -15,7 +15,10 @@ print(insp.get_table_names())
 key = '6355122600AFA6460C66EBCA179B83C1'
 api = dota2api.Initialise(key)
 
-accID = 3342844
+accID = 117369474
+#96915676 AK
+# 117369474 Ree
+
 
 #def player_to_db_full(accID, api, engine):
 matches = []
