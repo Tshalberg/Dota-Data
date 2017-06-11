@@ -5,15 +5,16 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # We define our neural network class
 class Neural_network(object):
-    def __init__(self):
+    def __init__(self, hidSize):
         # Define hyperparameters
         self.inputLayerSize = 2
         self.outputLayerSize = 1
-        self.hiddenLayerSize = 3
+        self.hiddenLayerSize = hidSize
         
         # Weights
         self.W1 = np.random.randn(self.inputLayerSize, self.hiddenLayerSize)
-        self.W2 = np.random.randn(self.hiddenLayerSize, self.outputLayerSize)
+        self.W2 = np.random.randn(self.hiddenLayerSize, self.hiddenLayerSize)
+        self.W3 = np.random.randn(self.hiddenLayerSize, self.outputLayerSize)
         
     def forward(self, X):
         # Propergates inputs through network
@@ -23,7 +24,12 @@ class Neural_network(object):
         self.a2 = self.sigmoid(self.z2)
         print(self.a2.shape, self.W2.shape)
         self.z3 = np.dot(self.a2, self.W2)
-        yHat = self.sigmoid(self.z3)
+        print(self.z3.shape)
+        self.a3 = self.sigmoid(self.z3)
+        print(self.a3.shape, self.W3.shape)
+        self.z4 = np.dot(self.a3, self.W3)
+#        print(self.z)
+        yHat = self.sigmoid(self.z4)
         return yHat
         
             
@@ -45,9 +51,12 @@ class Neural_network(object):
         #Compute derivative with respect to W and W2 for a given X and y:
         self.yHat = self.forward(X)
         
+        delta4 = np.multiply(-(y-self.yHat), self.sigmoidPrime(self.z4))
+        dJdW3 = np.dot(self.a3.T, delta4)
+        
         print(self.z3.shape)
     
-        delta3 = np.multiply(-(y-self.yHat), self.sigmoidPrime(self.z3))
+        delta3 = np.dot(delta4, self.W3.T)*self.sigmoidPrime(self.z3)
         dJdW2 = np.dot(self.a2.T, delta3)
         
         print(delta3.shape)
@@ -55,7 +64,7 @@ class Neural_network(object):
         delta2 = np.dot(delta3, self.W2.T)*self.sigmoidPrime(self.z2)
         dJdW1 = np.dot(X.T, delta2)  
         
-        return dJdW1, dJdW2
+        return dJdW1, dJdW2, dJdW3
 
     def getParams(self):
         # Get W1 and W2 "rolled" into a vector
@@ -149,18 +158,21 @@ y = y/100
 
 costs = []
 a = 0.5
-NN = Neural_network()
-yhat = NN.forward(X)
-Nit = 5000
+hidSize = 50
+NN = Neural_network(hidSize)
+#yHat = NN.forward(X)
+#dJW1, dJW2, dJdW3 = NN.costFunctionPrime(X, y)
+Nit = 10000
 for i in range(Nit):
     costs.append(NN.costFunction(X, y))
-    dJW1, dJW2 = NN.costFunctionPrime(X, y)
+    dJW1, dJW2, dJW3 = NN.costFunctionPrime(X, y)
     NN.W1 = NN.W1 - dJW1*a
     NN.W2 = NN.W2 - dJW2*a
-print(NN.costFunction(X,y))
+    NN.W3 = NN.W3 - dJW3*a
+print(NN.costFunction(X, y))
 plt.plot(list(range(Nit)), costs)
 
-#dJW1, dJW2 = NN.costFunctionPrime(X, y)
+
 
 
 
